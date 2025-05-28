@@ -1,4 +1,4 @@
-from typing import List, Dict, Tuple, Optional
+from typing import List, Dict, Tuple, Optional, Union
 import random
 from datetime import datetime
 from collections import Counter
@@ -22,8 +22,12 @@ snack_map: Dict[Tuple[str, str], List[str]] = {
 log: List[Dict[str, str]] = []
 
 @app.task
-def get_snack_options(mood: str, energy: str) -> List[str]:
-    return snack_map.get((mood, energy), ["Granola Bar"])
+def get_snack_options(mood: str, energy: str) -> Dict[str, List[str]]:
+    try:
+        options = snack_map.get((mood, energy), ["Granola Bar"])
+        return {"options": options}
+    except Exception as e:
+        return {"error": str(e)}
 
 @app.task
 def choose_snack(
@@ -31,47 +35,54 @@ def choose_snack(
     energy: str,
     mode: str = "Surprise Me",
     manual_choice: Optional[str] = None
-) -> str:
-    options = get_snack_options(mood, energy)
-    if mode == "Surprise Me":
-        return random.choice(options)
-    elif manual_choice in options:
-        return manual_choice
-    else:
-        return "Granola Bar"
+) -> Dict[str, str]:
+    try:
+        options = snack_map.get((mood, energy), ["Granola Bar"])
+        if mode == "Surprise Me":
+            return {"snack": random.choice(options)}
+        elif manual_choice in options:
+            return {"snack": manual_choice}
+        else:
+            return {"snack": "Granola Bar"}
+    except Exception as e:
+        return {"error": str(e)}
 
 @app.task
-def log_snack(mood: str, energy: str, snack: str) -> Dict[str, str]:
-    entry = {
-        "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-        "mood": mood,
-        "energy": energy,
-        "snack": snack
-    }
-    log.append(entry)
-    return entry
-
-def show_log() -> None:
-    for entry in log:
-        print(entry)
+def log_snack(mood: str, energy: str, snack: str) -> Dict[str, Union[str, Dict]]:
+    try:
+        entry = {
+            "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "mood": mood,
+            "energy": energy,
+            "snack": snack
+        }
+        log.append(entry)
+        return {"log": entry}
+    except Exception as e:
+        return {"error": str(e)}
 
 @app.task
-def get_snack_stats() -> Counter:
-    snack_counts = Counter(entry['snack'] for entry in log)
-    return snack_counts
+def get_snack_stats() -> Dict[str, int]:
+    try:
+        counts = Counter(entry["snack"] for entry in log)
+        return dict(counts)
+    except Exception as e:
+        return {"error": str(e)}
 
-# Example usage
+# You can optionally keep this for CLI test
 if __name__ == "__main__":
     mood = "Tired"
     energy = "Low"
-    mode = "Surprise Me"  
-    manual_choice = None  
+    mode = "Surprise Me"
+    manual_choice = None
 
-    snack = choose_snack(mood, energy, mode, manual_choice)
-    print(f"Suggested Snack: {snack}")
+    result = choose_snack(mood, energy, mode, manual_choice)
+    print(f"Suggested Snack: {result}")
 
-    log_snack(mood, energy, snack)
-    show_log()
+    log_snack(mood, energy, result["snack"])
+    print("Snack Log:")
+    for entry in log:
+        print(entry)
 
     stats = get_snack_stats()
     print("\nSnack Popularity:")
