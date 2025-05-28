@@ -22,27 +22,30 @@ snack_map: Dict[Tuple[str, str], List[str]] = {
 log: List[Dict[str, str]] = []
 
 @app.task
-def get_snack_option(mood: str, energy: str) -> str:
-    mood = mood.capitalize()
-    energy = energy.capitalize()
-    options = snack_map.get((mood, energy), ["Granola Bar"])
-    return options[0]
+def get_snack_option(mood: str, energy: str) -> Dict[str, str]:
+    """
+    Return the first available snack based on mood and energy.
+    """
+    options = snack_map.get((mood.capitalize(), energy.capitalize()), ["Granola Bar"])
+    return {"snack": options[0]}
 
 @app.task
-def choose_snack(mood: str, energy: str, mode: str = "Surprise Me", manual_choice: Optional[str] = None) -> str:
-    mood = mood.capitalize()
-    energy = energy.capitalize()
-    options = snack_map.get((mood, energy), ["Granola Bar"])
+def choose_snack(mood: str, energy: str, mode: str = "Surprise Me", manual_choice: Optional[str] = None) -> Dict[str, str]:
+    """
+    Return a chosen snack either randomly or manually if valid.
+    """
+    options = snack_map.get((mood.capitalize(), energy.capitalize()), ["Granola Bar"])
     if mode == "Surprise Me":
-        return random.choice(options)
+        return {"snack": random.choice(options)}
     if manual_choice in options:
-        return manual_choice
-    return "Granola Bar"
+        return {"snack": manual_choice}
+    return {"snack": "Granola Bar"}
 
 @app.task
 def log_snack(mood: str, energy: str, snack: str) -> Dict[str, str]:
-    mood = mood.capitalize()
-    energy = energy.capitalize()
+    """
+    Log a snack with timestamp and return the entry.
+    """
     entry = {
         "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
         "mood": mood,
@@ -52,7 +55,6 @@ def log_snack(mood: str, energy: str, snack: str) -> Dict[str, str]:
     log.append(entry)
     return entry
 
-
 @app.task
 def get_snack_stats() -> Dict[str, int]:
     """
@@ -60,7 +62,7 @@ def get_snack_stats() -> Dict[str, int]:
     """
     return dict(Counter(entry["snack"] for entry in log))
 
-# Optional CLI test
+# CLI test (Optional)
 if __name__ == "__main__":
     mood = "Happy"
     energy = "Low"
@@ -73,7 +75,7 @@ if __name__ == "__main__":
     print(chosen)
 
     print("Logging snack...")
-    print(log_snack(mood, energy, chosen))
+    print(log_snack(mood, energy, chosen["snack"]))
 
     print("Snack stats:")
     print(get_snack_stats())
