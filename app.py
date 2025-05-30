@@ -62,20 +62,3 @@ def get_snack_stats() -> Dict[str, int]:
     """
     return dict(Counter(entry["snack"] for entry in log))
 
-# CLI test (Optional)
-if __name__ == "__main__":
-    mood = "Happy"
-    energy = "Low"
-
-    print("First snack option:")
-    print(get_snack_option(mood, energy))
-
-    print("Surprise snack:")
-    chosen = choose_snack(mood, energy)
-    print(chosen)
-
-    print("Logging snack...")
-    print(log_snack(mood, energy, chosen["snack"]))
-
-    print("Snack stats:")
-    print(get_snack_stats())
